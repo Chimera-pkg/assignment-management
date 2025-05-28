@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,7 +20,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { FolderOpen, Plus, Edit, Trash2, FileText } from "lucide-react"
+import { FolderOpen, Plus, Edit, Trash2, FileText, BookOpen } from "lucide-react"
+import AssignmentModal, { type AssignmentData } from "@/components/assignment-modal"
 
 // Mock data for folders
 const initialFolders = [
@@ -54,6 +56,7 @@ const initialFolders = [
 ]
 
 export default function ManageFolders() {
+  const router = useRouter()
   const [folders, setFolders] = useState(initialFolders)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [editingFolder, setEditingFolder] = useState<any>(null)
@@ -61,6 +64,8 @@ export default function ManageFolders() {
     name: "",
     description: "",
   })
+  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
+  const [selectedFolderId, setSelectedFolderId] = useState<number | undefined>(undefined)
 
   const handleCreateFolder = () => {
     if (!newFolder.name.trim()) return
@@ -100,9 +105,26 @@ export default function ManageFolders() {
     setEditingFolder(null)
     setNewFolder({ name: "", description: "" })
   }
-
   const handleDeleteFolder = (folderId: number) => {
     setFolders(folders.filter((folder) => folder.id !== folderId))
+  }
+
+  const handleAddAssignment = () => {
+    setIsAssignmentModalOpen(true)
+  }
+
+  const handleAssignmentSubmit = (assignmentData: AssignmentData) => {
+    console.log("Assignment created:", assignmentData)
+    
+    // Here you would typically save the assignment to your backend
+    // For now, we'll just log it and close the modal
+    setIsAssignmentModalOpen(false)
+    setSelectedFolderId(undefined)
+  }
+  const handleFolderClick = (folderName: string) => {
+    // Convert folder name to URL-friendly format
+    const urlFriendlyName = folderName.toLowerCase().replace(/\s+/g, '-')
+    router.push(`/folders/${urlFriendlyName}`)
   }
 
   return (
@@ -111,68 +133,34 @@ export default function ManageFolders() {
         <SidebarTrigger className="-ml-1" />
         <div className="flex items-center justify-between w-full">
           <h1 className="text-lg font-semibold">Kelola Folder Tugas</h1>
-
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Buat Folder Baru
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Buat Folder Baru</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="folder-name">Nama Folder</Label>
-                  <Input
-                    id="folder-name"
-                    placeholder="Masukkan nama folder..."
-                    value={newFolder.name}
-                    onChange={(e) => setNewFolder({ ...newFolder, name: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="folder-description">Deskripsi</Label>
-                  <Input
-                    id="folder-description"
-                    placeholder="Masukkan deskripsi folder..."
-                    value={newFolder.description}
-                    onChange={(e) => setNewFolder({ ...newFolder, description: e.target.value })}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={handleCreateFolder} className="flex-1">
-                    Buat Folder
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setIsCreateDialogOpen(false)
-                      setNewFolder({ name: "", description: "" })
-                    }}
-                  >
-                    Batal
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </header>
 
       <div className="p-6">
+        {/* Add Assignment Button */}
+        <div className="mb-6">
+          <Button 
+            onClick={handleAddAssignment}
+            className="w-fit"
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            Tambah Tugas
+          </Button>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {folders.map((folder) => (
-            <Card key={folder.id} className="hover:shadow-md transition-shadow">
+            <Card key={folder.id} className="hover:shadow-md transition-shadow group">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-start justify-between">                  <div 
+                    className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => handleFolderClick(folder.name)}
+                  >
                     <FolderOpen className="w-5 h-5 text-muted-foreground" />
                     <CardTitle className="text-lg">{folder.name}</CardTitle>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* Edit Dialog */}
                     <Dialog
                       open={editingFolder?.id === folder.id}
                       onOpenChange={(open) => !open && setEditingFolder(null)}
@@ -221,6 +209,7 @@ export default function ManageFolders() {
                       </DialogContent>
                     </Dialog>
 
+                    {/* Delete Alert Dialog */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="ghost" size="sm">
@@ -251,7 +240,7 @@ export default function ManageFolders() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <FileText className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm">{folder.assignmentCount} tugas</span>
@@ -270,13 +259,17 @@ export default function ManageFolders() {
             <FolderOpen className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Belum ada folder</h3>
             <p className="text-muted-foreground mb-4">Buat folder pertama Anda untuk mengorganisir tugas-tugas</p>
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Buat Folder Baru
-            </Button>
           </div>
         )}
       </div>
+
+      {/* Assignment Modal */}
+      <AssignmentModal
+        open={isAssignmentModalOpen}
+        onOpenChange={setIsAssignmentModalOpen}
+        onSubmit={handleAssignmentSubmit}
+        folderId={selectedFolderId}
+      />
     </SidebarInset>
   )
 }

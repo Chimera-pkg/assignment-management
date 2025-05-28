@@ -16,22 +16,12 @@ import Link from "next/link"
 const menuItems = [
   {
     title: "Dashboard",
-    url: "/",
+    url: "/dashboard",
     icon: LayoutDashboard,
   },
   {
-    title: "Tambah Tugas",
-    url: "/add-assignment",
-    icon: Plus,
-  },
-  {
-    title: "Upload Tugas",
-    url: "/upload-submission",
-    icon: Upload,
-  },
-  {
-    title: "Kelola Folder",
-    url: "/manage-folders",
+    title: "Tugas",
+    url: "/folders",
     icon: FolderOpen,
   },
 ]
