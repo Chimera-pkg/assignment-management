@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useParams } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -49,6 +50,12 @@ const submittedFiles = [
 ]
 
 export default function Dashboard() {
+  const params = useParams()
+  const folderName = params.folderName as string
+  
+  // Convert URL-friendly name back to display name
+  const displayName = folderName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Dashboard'
+  
   const [selectedFile, setSelectedFile] = useState(submittedFiles[0])
   const [showAIPrompt, setShowAIPrompt] = useState(true)
 
@@ -79,21 +86,26 @@ export default function Dashboard() {
   }
 
   return (
-    <SidebarInset>
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+    <SidebarInset>      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
         <SidebarTrigger className="-ml-1" />
         <div className="flex items-center gap-2">
-          <h1 className="text-lg font-semibold">Dashboard</h1>
+          <h1 className="text-lg font-semibold">{displayName}</h1>
         </div>
       </header>
 
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Left Section - File List (30%) */}
         <div className="w-[30%] border-r bg-muted/20">
-          <div className="p-4 border-b">
-            <h2 className="font-semibold text-sm">Tugas Terkumpul</h2>
-            <p className="text-xs text-muted-foreground">{submittedFiles.length} file tersedia</p>
-          </div>
+            <div className="p-4 border-b flex items-center justify-between">
+            <div>
+              <h2 className="font-semibold text-sm">{submittedFiles.length} Tugas Terkumpul</h2>
+              <p className="text-xs text-muted-foreground">3 mengumpulkan tepat waktu</p>
+              <p className="text-xs text-muted-foreground">1 mengumpulkan terlambat</p>
+            </div>
+            <Button variant="outline" onClick={() => window.location.href = "/submission"}>
+              Pengumpulan tugas
+            </Button>
+            </div>
 
           <ScrollArea className="h-[calc(100vh-8rem)]">
             <div className="p-2 space-y-2">
