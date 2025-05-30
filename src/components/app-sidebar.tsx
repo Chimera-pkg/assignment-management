@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar"
 import { LayoutDashboard, Plus, Upload, FolderOpen, User } from "lucide-react"
 import Link from "next/link"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 const menuItems = [
   {
@@ -62,14 +63,17 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="p-4">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton>
-              <User className="w-4 h-4" />
-              <span>Admin User</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="flex flex-col gap-2">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton>
+                <User className="w-4 h-4" />
+                <span>Admin User</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+          <ThemeToggle />
+        </div>
       </SidebarFooter>
     </Sidebar>
   )

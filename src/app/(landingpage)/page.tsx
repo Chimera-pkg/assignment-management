@@ -15,7 +15,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center space-x-4">
                         <Link href="/dashboard">
-                            <Button variant="ghost">Login</Button>
+                            <Button variant="ghost" className="text-black">Login</Button>
                         </Link>
                         <Link href="/folders">
                             <Button>Daftar</Button>
