@@ -7,8 +7,22 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { FileText, Calendar, User, Bot, X } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
+import { FileText, Calendar, User, Bot, X, Edit, Loader2 } from "lucide-react"
 import { PDFViewer } from "@/components/assignment/pdf-viewer"
+import { generateAIFeedback } from "@/actions/feedback"
+import { submitGrade } from "@/actions/grading"
 
 // Mock data for submitted assignments
 const submittedFiles = [
@@ -56,9 +70,12 @@ export default function Dashboard() {
   
   // Convert URL-friendly name back to display name
   const displayName = folderName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Dashboard'
-  
-  const [selectedFile, setSelectedFile] = useState(submittedFiles[0])
+    const [selectedFile, setSelectedFile] = useState(submittedFiles[0])
   const [showAIPrompt, setShowAIPrompt] = useState(true)
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false)
+  const [grade, setGrade] = useState("")
+  const [correction, setCorrection] = useState("")
+  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -72,7 +89,6 @@ export default function Dashboard() {
         return "bg-gray-100 text-gray-800"
     }
   }
-
   const getStatusText = (status: string) => {
     switch (status) {
       case "submitted":
@@ -83,6 +99,54 @@ export default function Dashboard() {
         return "Dinilai"
       default:
         return "Unknown"
+    }
+  }
+  const handleGradeSubmit = async () => {
+    try {
+      const result = await submitGrade({
+        studentName: selectedFile.studentName,
+        fileName: selectedFile.fileName,
+        assignmentTitle: selectedFile.assignmentTitle,
+        grade,
+        correction
+      })
+
+      if (result.success) {
+        console.log("Grade submitted successfully:", result.message)
+        setIsGradeModalOpen(false)
+        setGrade("")
+        setCorrection("")
+        // You can add a toast notification here if needed
+      } else {
+        console.error("Failed to submit grade:", result.error)
+        // You can add error handling UI here
+      }
+    } catch (error) {
+      console.error("Error submitting grade:", error)
+      // You can add error handling UI here
+    }
+  }
+
+  const handleGenerateAIFeedback = async () => {
+    setIsGeneratingFeedback(true)
+    
+    try {
+      const result = await generateAIFeedback({
+        title: selectedFile.assignmentTitle,
+        studentName: selectedFile.studentName,
+        fileName: selectedFile.fileName
+      })
+
+      if (result.success && result.feedback) {
+        setCorrection(result.feedback)
+      } else {
+        setCorrection(`Error generating AI feedback: ${result.error}. Please try again.`)
+      }
+    } catch (error) {
+      console.error("Error generating AI feedback:", error)
+      setCorrection(`Error generating AI feedback: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`)
+    } finally {
+      setIsGeneratingFeedback(false)
     }
   }
 
@@ -150,11 +214,69 @@ export default function Dashboard() {
 
         {/* Right Section - PDF Preview (70%) */}
         <div className="flex-1 relative">
-          <div className="p-4 border-b">
-            <h3 className="font-semibold">{selectedFile.assignmentTitle}</h3>
-            <p className="text-sm text-muted-foreground">
-              {selectedFile.fileName} - {selectedFile.studentName}
-            </p>
+          <div className="p-4 border-b flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">{selectedFile.assignmentTitle}</h3>
+              <p className="text-sm text-muted-foreground">
+                {selectedFile.fileName} - {selectedFile.studentName}
+              </p>
+            </div>
+            
+            {/* Grade Modal Button */}
+            <Dialog open={isGradeModalOpen} onOpenChange={setIsGradeModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Beri Nilai
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Beri Nilai dan Koreksi</DialogTitle>
+                  <DialogDescription>
+                    Berikan nilai dan koreksi untuk tugas {selectedFile.studentName}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="grade" className="text-right">
+                      Nilai
+                    </Label>
+                    <Input
+                      id="grade"
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="0-100"
+                      value={grade}
+                      onChange={(e) => setGrade(e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="correction" className="text-right mt-2">
+                      Koreksi
+                    </Label>
+                    <Textarea
+                      id="correction"
+                      placeholder="Masukkan koreksi dan feedback..."
+                      value={correction}
+                      onChange={(e) => setCorrection(e.target.value)}
+                      className="col-span-3 min-h-[100px]"
+                    />
+                  </div>
+                </div>                <DialogFooter>
+                  <Button variant='outline' onClick={handleGradeSubmit}>Simpan</Button>
+                  <Button 
+                    onClick={handleGenerateAIFeedback}
+                    disabled={isGeneratingFeedback}
+                  >
+                    {isGeneratingFeedback && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                    {isGeneratingFeedback ? "Generating..." : "Generate AI Feedback"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>          {/* PDF Preview Area */}
           <div className="h-[calc(100vh-12rem)]">
             <PDFViewer 
@@ -162,48 +284,6 @@ export default function Dashboard() {
               className="w-full h-full"
             />
           </div>
-
-          {/* Floating AI Prompt (Red Box) */}
-          {showAIPrompt && (
-            <div className="absolute top-20 right-4 bg-red-50 border-2 border-red-200 rounded-lg p-4 shadow-lg max-w-sm">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2">
-                  <Bot className="w-5 h-5 text-red-600 mt-0.5" />
-                  <div>
-                    <p className="font-medium text-red-800">Koreksi dengan AI?</p>
-                    <p className="text-sm text-red-600 mt-1">
-                      Apakah Anda ingin menggunakan AI untuk mengoreksi tugas ini?
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowAIPrompt(false)}
-                  className="h-6 w-6 p-0 text-red-400 hover:text-red-600"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="flex gap-2 mt-3">
-                <Button
-                  size="sm"
-                  className="bg-red-600 hover:bg-red-700"
-                  onClick={() => {
-                    // Handle AI correction
-                    setShowAIPrompt(false)
-                    // Add AI correction logic here
-                  }}
-                >
-                  Ya, Koreksi
-                </Button>
-                <Button variant="outline" size="sm" onClick={() => setShowAIPrompt(false)}>
-                  Tidak
-                </Button>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </SidebarInset>

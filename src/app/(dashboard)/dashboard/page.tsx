@@ -19,7 +19,6 @@ import {
   BarChart3
 } from "lucide-react";
 
-// Mock data untuk demonstrasi
 const mockData = {
   overview: {
     totalTugas: 45,
