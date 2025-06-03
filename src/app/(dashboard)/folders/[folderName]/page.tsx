@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { FileText, Calendar, User, Bot, X } from "lucide-react"
+import { PDFViewer } from "@/components/assignment/pdf-viewer"
 
 // Mock data for submitted assignments
 const submittedFiles = [
@@ -18,7 +19,7 @@ const submittedFiles = [
     assignmentTitle: "Aljabar Linear",
     submitDate: "2024-01-15",
     status: "submitted",
-    fileUrl: "/placeholder.svg?height=800&width=600",
+    fileUrl: "https://alwocqtpmrlfebnjjtct.supabase.co/storage/v1/object/public/Kumpulin/Praktikum%20DNS%20Server/2%20SDT%20%20B/Laprak(2)_BasicCMDofLinux_46.pdf",
   },
   {
     id: 2,
@@ -27,7 +28,7 @@ const submittedFiles = [
     assignmentTitle: "Analisis Puisi",
     submitDate: "2024-01-14",
     status: "reviewed",
-    fileUrl: "/placeholder.svg?height=800&width=600",
+    fileUrl: "https://www.africau.edu/images/default/sample.pdf",
   },
   {
     id: 3,
@@ -36,7 +37,7 @@ const submittedFiles = [
     assignmentTitle: "Eksperimen Gerak",
     submitDate: "2024-01-13",
     status: "submitted",
-    fileUrl: "/placeholder.svg?height=800&width=600",
+    fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   },
   {
     id: 4,
@@ -45,7 +46,7 @@ const submittedFiles = [
     assignmentTitle: "Reaksi Kimia",
     submitDate: "2024-01-12",
     status: "graded",
-    fileUrl: "/placeholder.svg?height=800&width=600",
+    fileUrl: "https://www.africau.edu/images/default/sample.pdf",
   },
 ]
 
@@ -154,16 +155,12 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground">
               {selectedFile.fileName} - {selectedFile.studentName}
             </p>
-          </div>
-
-          {/* PDF Preview Area */}
-          <div className="h-[calc(100vh-12rem)] bg-gray-50 flex items-center justify-center">
-            <div className="text-center">
-              <FileText className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-              <p className="text-lg font-medium">PDF Preview</p>
-              <p className="text-sm text-muted-foreground">{selectedFile.fileName}</p>
-              <p className="text-xs text-muted-foreground mt-2">PDF viewer akan ditampilkan di sini</p>
-            </div>
+          </div>          {/* PDF Preview Area */}
+          <div className="h-[calc(100vh-12rem)]">
+            <PDFViewer 
+              url={selectedFile.fileUrl} 
+              className="w-full h-full"
+            />
           </div>
 
           {/* Floating AI Prompt (Red Box) */}
