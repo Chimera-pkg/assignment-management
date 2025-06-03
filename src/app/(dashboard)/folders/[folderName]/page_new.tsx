@@ -30,12 +30,10 @@ export default function Dashboard() {
   const params = useParams()
   const folderName = params.folderName as string
   
-  // Convert URL-friendly name back to display name
   const displayName = folderName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Dashboard'
   const [submittedFiles, setSubmittedFiles] = useState<DocumentData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedFile, setSelectedFile] = useState<DocumentData | null>(null)
-  const [showAIPrompt, setShowAIPrompt] = useState(true)
   const [isGradeModalOpen, setIsGradeModalOpen] = useState(false)
   const [grade, setGrade] = useState("")
   const [correction, setCorrection] = useState("")
@@ -45,6 +43,13 @@ export default function Dashboard() {
   useEffect(() => {
     loadDocuments()
   }, [folderName])
+
+  useEffect(() => {
+    if (selectedFile) {
+      setGrade(selectedFile.grade || "")
+      setCorrection(selectedFile.feedback || "")
+    }
+  }, [selectedFile])
 
   const loadDocuments = async () => {
     if (!folderName) return
@@ -64,29 +69,18 @@ export default function Dashboard() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "submitted":
-        return "bg-blue-100 text-blue-800"
-      case "reviewed":
-        return "bg-yellow-100 text-yellow-800"
-      case "graded":
-        return "bg-green-100 text-green-800"
-      default:
-        return "bg-gray-100 text-gray-800"
-    }
+  const getStatusColor = (hasGrade: boolean, hasFeedback: boolean) => {
+    if (hasGrade && hasFeedback) return "bg-green-100 text-green-800"
+    if (hasFeedback) return "bg-yellow-100 text-yellow-800"
+    return "bg-blue-100 text-blue-800"
   }
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case "submitted":
-        return "Dikumpulkan"
-      case "reviewed":
-        return "Direview"
-      case "graded":
-        return "Dinilai"
-      default:        return "Unknown"
-    }
+
+  const getStatusText = (hasGrade: boolean, hasFeedback: boolean) => {
+    if (hasGrade && hasFeedback) return "Dinilai"
+    if (hasFeedback) return "Direview"
+    return "Dikumpulkan"
   }
+
   const handleGradeSubmit = async () => {
     if (!selectedFile) return
     
@@ -100,17 +94,12 @@ export default function Dashboard() {
       if (result.success) {
         console.log("Grade submitted successfully:", result.message)
         setIsGradeModalOpen(false)
-        setGrade("")
-        setCorrection("")
-        // Reload documents to show updated data
         await loadDocuments()
-        // You can add a toast notification here if needed
       } else {
         console.error("Failed to submit grade:", result.error)
-        // You can add error handling UI here
       }
-    } catch (error) {      console.error("Error submitting grade:", error)
-      // You can add error handling UI here
+    } catch (error) {
+      console.error("Error submitting grade:", error)
     }
   }
 
@@ -121,7 +110,7 @@ export default function Dashboard() {
     
     try {
       const result = await generateAIFeedback({
-        title: selectedFile.folder || 'Assignment',
+        title: selectedFile.folder || "Assignment",
         studentName: selectedFile.name_student,
         fileName: selectedFile.document_name
       })
@@ -129,49 +118,83 @@ export default function Dashboard() {
       if (result.success && result.feedback) {
         setCorrection(result.feedback)
       } else {
-        setCorrection(`Error generating AI feedback: ${result.error}. Please try again.`)
+        setCorrection(`Error: ${result.error}`)
       }
     } catch (error) {
       console.error("Error generating AI feedback:", error)
-      setCorrection(`Error generating AI feedback: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`)
+      setCorrection(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsGeneratingFeedback(false)
     }
   }
 
   const handleSendEmail = async () => {
-    if (!selectedFile || !correction.trim()) {
-      console.error("No file selected or no feedback to send")
+    if (!selectedFile || !selectedFile.email) {
+      alert("Email siswa tidak ditemukan")
       return
     }
-
+    
     setIsSendingEmail(true)
     
-    try {      const result = await sendFeedbackEmail({
+    try {
+      const result = await sendFeedbackEmail({
         documentId: selectedFile.id,
-        studentEmail: selectedFile.email || `${selectedFile.name_student.toLowerCase().replace(/\s+/g, '.')}@student.example.com`, // Use database email or fallback
+        studentEmail: selectedFile.email,
         studentName: selectedFile.name_student,
-        assignmentTitle: selectedFile.folder || 'Assignment',
+        assignmentTitle: selectedFile.folder || "Assignment",
         feedback: correction,
-        grade: grade
+        grade: grade || undefined
       })
 
       if (result.success) {
-        console.log("Email sent successfully:", result.message)
-        // You can add a toast notification here
+        alert("Email berhasil dikirim!")
       } else {
-        console.error("Failed to send email:", result.error)
-        // You can add error handling UI here
+        alert(`Gagal mengirim email: ${result.error}`)
       }
     } catch (error) {
       console.error("Error sending email:", error)
+      alert("Gagal mengirim email")
     } finally {
       setIsSendingEmail(false)
     }
   }
 
+  if (loading) {
+    return (
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold">{displayName}</h1>
+          </div>
+        </header>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <span className="ml-2">Loading documents...</span>
+        </div>
+      </SidebarInset>
+    )
+  }
+
+  if (!selectedFile) {
+    return (
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+          <SidebarTrigger className="-ml-1" />
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold">{displayName}</h1>
+          </div>
+        </header>
+        <div className="flex items-center justify-center h-64">
+          <p>No documents found in this folder.</p>
+        </div>
+      </SidebarInset>
+    )
+  }
+
   return (
-    <SidebarInset>      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+    <SidebarInset>
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
         <SidebarTrigger className="-ml-1" />
         <div className="flex items-center gap-2">
           <h1 className="text-lg font-semibold">{displayName}</h1>
@@ -181,29 +204,26 @@ export default function Dashboard() {
       <div className="flex h-[calc(100vh-4rem)]">
         {/* Left Section - File List (30%) */}
         <div className="w-[30%] border-r bg-muted/20">
-            <div className="p-4 border-b flex items-center justify-between">
+          <div className="p-4 border-b flex items-center justify-between">
             <div>
               <h2 className="font-semibold text-sm">{submittedFiles.length} Tugas Terkumpul</h2>
-              <p className="text-xs text-muted-foreground">3 mengumpulkan tepat waktu</p>
-              <p className="text-xs text-muted-foreground">1 mengumpulkan terlambat</p>
+              <p className="text-xs text-muted-foreground">Daftar tugas yang dikumpulkan</p>
             </div>
-            <Button variant="outline" onClick={() => window.location.href = "/submission"}>
-              Pengumpulan tugas
-            </Button>
-            </div>
+          </div>
 
           <ScrollArea className="h-[calc(100vh-8rem)]">
             <div className="p-2 space-y-2">
               {submittedFiles.map((file) => (
                 <Card
-                  key={file.id}                  className={`cursor-pointer transition-colors hover:bg-accent ${
-                    selectedFile?.id === file.id ? "ring-2 ring-primary" : ""
+                  key={file.id}
+                  className={`cursor-pointer transition-colors hover:bg-accent ${
+                    selectedFile.id === file.id ? "ring-2 ring-primary" : ""
                   }`}
                   onClick={() => {
                     setSelectedFile(file)
-                    setShowAIPrompt(true)
                   }}
-                >                  <CardContent className="p-3">
+                >
+                  <CardContent className="p-3">
                     <div className="flex items-start gap-2">
                       <FileText className="w-4 h-4 mt-1 text-muted-foreground" />
                       <div className="flex-1 min-w-0">
@@ -214,11 +234,13 @@ export default function Dashboard() {
                         </div>
                         <div className="flex items-center gap-1 mt-1">
                           <Calendar className="w-3 h-3 text-muted-foreground" />
-                          <p className="text-xs text-muted-foreground">{new Date(file.uploaded_date).toLocaleDateString()}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(file.uploaded_date).toLocaleDateString()}
+                          </p>
                         </div>
                         <div className="mt-2">
-                          <Badge variant="secondary" className={`text-xs ${getStatusColor(file.grade ? 'graded' : 'submitted')}`}>
-                            {getStatusText(file.grade ? 'graded' : 'submitted')}
+                          <Badge variant="secondary" className={`text-xs ${getStatusColor(!!file.grade, !!file.feedback)}`}>
+                            {getStatusText(!!file.grade, !!file.feedback)}
                           </Badge>
                         </div>
                       </div>
@@ -228,33 +250,32 @@ export default function Dashboard() {
               ))}
             </div>
           </ScrollArea>
-        </div>        {/* Right Section - PDF Preview (70%) */}
+        </div>
+
+        {/* Right Section - PDF Preview (70%) */}
         <div className="flex-1 relative">
-          {selectedFile && (
-            <>
-              <div className="p-4 border-b flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold">{selectedFile.folder || 'Assignment'}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {selectedFile.document_name} - {selectedFile.name_student}
-                  </p>
-                </div>
-                
-                {/* Grade Modal Button */}
-                <Dialog open={isGradeModalOpen} onOpenChange={setIsGradeModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Edit className="w-4 h-4 mr-2" />
-                      Beri Nilai
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                      <DialogTitle>Beri Nilai dan Koreksi</DialogTitle>
-                      <DialogDescription>
-                        Berikan nilai dan koreksi untuk tugas {selectedFile.name_student}
-                      </DialogDescription>
-                    </DialogHeader>
+          <div className="p-4 border-b flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold">{selectedFile.folder || "Assignment"}</h3>
+              <p className="text-sm text-muted-foreground">
+                {selectedFile.document_name} - {selectedFile.name_student}
+              </p>
+            </div>
+            
+            <Dialog open={isGradeModalOpen} onOpenChange={setIsGradeModalOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Beri Nilai
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Beri Nilai dan Koreksi</DialogTitle>
+                  <DialogDescription>
+                    Berikan nilai dan koreksi untuk tugas {selectedFile.name_student}
+                  </DialogDescription>
+                </DialogHeader>
                 <div className="grid gap-4 py-4">
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="grade" className="text-right">
@@ -270,68 +291,57 @@ export default function Dashboard() {
                       onChange={(e) => setGrade(e.target.value)}
                       className="col-span-3"
                     />
-                  </div>                  <div className="grid grid-cols-4 items-start gap-4">
+                  </div>
+                  <div className="grid grid-cols-4 items-start gap-4">
                     <Label htmlFor="correction" className="text-right mt-2">
                       Koreksi
                     </Label>
-                    <div className="col-span-3 relative">
+                    <div className="col-span-3 space-y-2">
                       <Textarea
                         id="correction"
                         placeholder="Masukkan koreksi dan feedback..."
                         value={correction}
                         onChange={(e) => setCorrection(e.target.value)}
-                        className="min-h-[100px] pr-12"
+                        className="min-h-[100px]"
                       />
-                      <Button
-                        type="button"
+                      <Button 
+                        variant="outline"
                         size="sm"
-                        variant="ghost"
-                        className="absolute top-2 right-2 h-8 w-8 p-0"
                         onClick={handleGenerateAIFeedback}
                         disabled={isGeneratingFeedback}
-                        title="Generate AI Feedback"
+                        className="w-full"
                       >
-                        {isGeneratingFeedback ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Bot className="w-4 h-4" />
-                        )}
-                      </Button>                    </div>
+                        {isGeneratingFeedback && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {isGeneratingFeedback ? "Generating..." : "Generate AI Feedback"}
+                      </Button>
+                    </div>
                   </div>
                 </div>
-                <DialogFooter className="flex justify-between">
-                  <Button variant="outline" onClick={handleGradeSubmit}>
+                <DialogFooter className="flex gap-2">
+                  <Button variant='outline' onClick={handleGradeSubmit}>
                     Simpan
                   </Button>
                   <Button 
                     onClick={handleSendEmail}
-                    disabled={isSendingEmail || !correction.trim()}
-                    className="ml-2"
+                    disabled={isSendingEmail || !selectedFile.email}
                   >
                     {isSendingEmail && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                     <Mail className="w-4 h-4 mr-2" />
-                    {isSendingEmail ? "Mengirim..." : "Kirim Email"}
+                    {isSendingEmail ? "Sending..." : "Kirim Email"}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
-
-          {/* PDF Preview Area */}
+          
           <div className="h-[calc(100vh-12rem)]">
             <PDFViewer 
               url={selectedFile.document_url} 
               className="w-full h-full"
             />
           </div>
-        </>
-      )}
-      {!selectedFile && (        <div className="flex items-center justify-center h-full">
-          <p className="text-muted-foreground">Select a file to preview</p>
         </div>
-      )}
-    </div>
-  </div>
-</SidebarInset>
+      </div>
+    </SidebarInset>
   )
 }

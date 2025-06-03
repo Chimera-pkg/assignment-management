@@ -1,131 +1,26 @@
-"use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { FolderOpen, Plus, Edit, Trash2, FileText, BookOpen } from "lucide-react"
-import AssignmentModal, { type AssignmentData } from "@/components/assignment-modal"
+import { FolderOpen, FileText, BookOpen } from "lucide-react"
+import { getAllFolders, type FolderWithCount } from "@/actions/folders"
+import FolderCard from "@/components/folder-card"
+import AddAssignmentButton from "@/components/add-assignment-button"
 
-// Mock data for folders
-const initialFolders = [
-  {
-    id: 1,
-    name: "Matematika",
-    description: "Folder untuk tugas-tugas matematika",
-    assignmentCount: 5,
-    color: "bg-blue-100 text-blue-800",
-  },
-  {
-    id: 2,
-    name: "Bahasa Indonesia",
-    description: "Folder untuk tugas bahasa dan sastra",
-    assignmentCount: 3,
-    color: "bg-green-100 text-green-800",
-  },
-  {
-    id: 3,
-    name: "Sains",
-    description: "Folder untuk tugas fisika, kimia, dan biologi",
-    assignmentCount: 7,
-    color: "bg-purple-100 text-purple-800",
-  },
-  {
-    id: 4,
-    name: "Sejarah",
-    description: "Folder untuk tugas sejarah dan sosial",
-    assignmentCount: 2,
-    color: "bg-orange-100 text-orange-800",
-  },
+// Color palette for folder badges
+const folderColors = [
+  "bg-blue-100 text-blue-800",
+  "bg-green-100 text-green-800",
+  "bg-purple-100 text-purple-800",
+  "bg-orange-100 text-orange-800",
+  "bg-pink-100 text-pink-800",
+  "bg-indigo-100 text-indigo-800",
+  "bg-yellow-100 text-yellow-800",
+  "bg-red-100 text-red-800",
 ]
 
-export default function ManageFolders() {
-  const router = useRouter()
-  const [folders, setFolders] = useState(initialFolders)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [editingFolder, setEditingFolder] = useState<any>(null)
-  const [newFolder, setNewFolder] = useState({
-    name: "",
-    description: "",
-  })
-  const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false)
-  const [selectedFolderId, setSelectedFolderId] = useState<number | undefined>(undefined)
-
-  const handleCreateFolder = () => {
-    if (!newFolder.name.trim()) return
-
-    const folder = {
-      id: Date.now(),
-      name: newFolder.name,
-      description: newFolder.description,
-      assignmentCount: 0,
-      color: "bg-gray-100 text-gray-800",
-    }
-
-    setFolders([...folders, folder])
-    setNewFolder({ name: "", description: "" })
-    setIsCreateDialogOpen(false)
-  }
-
-  const handleEditFolder = (folder: any) => {
-    setEditingFolder(folder)
-    setNewFolder({
-      name: folder.name,
-      description: folder.description,
-    })
-  }
-
-  const handleUpdateFolder = () => {
-    if (!newFolder.name.trim() || !editingFolder) return
-
-    setFolders(
-      folders.map((folder) =>
-        folder.id === editingFolder.id
-          ? { ...folder, name: newFolder.name, description: newFolder.description }
-          : folder,
-      ),
-    )
-
-    setEditingFolder(null)
-    setNewFolder({ name: "", description: "" })
-  }
-  const handleDeleteFolder = (folderId: number) => {
-    setFolders(folders.filter((folder) => folder.id !== folderId))
-  }
-
-  const handleAddAssignment = () => {
-    setIsAssignmentModalOpen(true)
-  }
-
-  const handleAssignmentSubmit = (assignmentData: AssignmentData) => {
-    console.log("Assignment created:", assignmentData)
-    
-    // Here you would typically save the assignment to your backend
-    // For now, we'll just log it and close the modal
-    setIsAssignmentModalOpen(false)
-    setSelectedFolderId(undefined)
-  }
-  const handleFolderClick = (folderName: string) => {
-    // Convert folder name to URL-friendly format
-    const urlFriendlyName = folderName.toLowerCase().replace(/\s+/g, '-')
-    router.push(`/folders/${urlFriendlyName}`)
-  }
+export default async function ManageFolders() {
+  const folders = await getAllFolders()
 
   return (
     <SidebarInset>
@@ -139,119 +34,28 @@ export default function ManageFolders() {
       <div className="p-6">
         {/* Add Assignment Button */}
         <div className="mb-6">
-          <Button 
-            onClick={handleAddAssignment}
-            className="w-fit"
-          >
-            <BookOpen className="w-4 h-4 mr-2" />
-            Tambah Tugas
-          </Button>
+          <AddAssignmentButton />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {folders.map((folder) => (
-            <Card key={folder.id} className="hover:shadow-md transition-shadow group">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">                  <div 
-                    className="flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
-                    onClick={() => handleFolderClick(folder.name)}
-                  >
-                    <FolderOpen className="w-5 h-5 text-muted-foreground" />
-                    <CardTitle className="text-lg">{folder.name}</CardTitle>
-                  </div>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    {/* Edit Dialog */}
-                    <Dialog
-                      open={editingFolder?.id === folder.id}
-                      onOpenChange={(open) => !open && setEditingFolder(null)}
-                    >
-                      <DialogTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => handleEditFolder(folder)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Folder</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-folder-name">Nama Folder</Label>
-                            <Input
-                              id="edit-folder-name"
-                              value={newFolder.name}
-                              onChange={(e) => setNewFolder({ ...newFolder, name: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-folder-description">Deskripsi</Label>
-                            <Input
-                              id="edit-folder-description"
-                              value={newFolder.description}
-                              onChange={(e) => setNewFolder({ ...newFolder, description: e.target.value })}
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <Button onClick={handleUpdateFolder} className="flex-1">
-                              Simpan Perubahan
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setEditingFolder(null)
-                                setNewFolder({ name: "", description: "" })
-                              }}
-                            >
-                              Batal
-                            </Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Delete Alert Dialog */}
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Hapus Folder</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Apakah Anda yakin ingin menghapus folder "{folder.name}"? Tindakan ini tidak dapat
-                            dibatalkan.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Batal</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteFolder(folder.id)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Hapus
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-3">{folder.description}</p>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm">{folder.assignmentCount} tugas</span>
-                  </div>
-                  <Badge variant="secondary" className={folder.color}>
-                    {folder.name}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {folders.map((folder, index) => {
+            const colorClass = folderColors[index % folderColors.length]
+            
+            return (
+              <FolderCard
+                key={folder.id}
+                folder={{
+                  id: folder.id,
+                  name: folder.name_assignment,
+                  description: folder.description || "Tidak ada deskripsi",
+                  assignmentCount: folder.document_count,
+                  color: colorClass,
+                  due_date: folder.due_date,
+                  class_name: folder.class_name,
+                }}
+              />
+            )
+          })}
         </div>
 
         {folders.length === 0 && (
@@ -262,14 +66,6 @@ export default function ManageFolders() {
           </div>
         )}
       </div>
-
-      {/* Assignment Modal */}
-      <AssignmentModal
-        open={isAssignmentModalOpen}
-        onOpenChange={setIsAssignmentModalOpen}
-        onSubmit={handleAssignmentSubmit}
-        folderId={selectedFolderId}
-      />
     </SidebarInset>
   )
 }
