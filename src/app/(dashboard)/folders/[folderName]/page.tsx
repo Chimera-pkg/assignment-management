@@ -10,38 +10,23 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { FileText, Calendar, User, Bot, X, Edit, Loader2, Mail } from "lucide-react"
+import { FileText, Calendar, User } from "lucide-react"
 import { PDFViewer } from "@/components/assignment/pdf-viewer"
-import { generateAIFeedback } from "@/actions/feedback"
-import { submitGrade, sendFeedbackEmail } from "@/actions/grading"
 import { getDocumentsByFolder } from "@/actions/documents"
 import type { DocumentData } from "@/actions/documents"
+import GradingModal from "@/components/grading-modal"
 
 export default function Dashboard() {
   const params = useParams()
   const router = useRouter()
   const folderName = params.folderName as string
-  
-  // Convert URL-friendly name back to display name
+    // Convert URL-friendly name back to display name
   const displayName = folderName?.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Dashboard'
   const [submittedFiles, setSubmittedFiles] = useState<DocumentData[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedFile, setSelectedFile] = useState<DocumentData | null>(null)
   const [showAIPrompt, setShowAIPrompt] = useState(true)
   const [isGradeModalOpen, setIsGradeModalOpen] = useState(false)
-  const [grade, setGrade] = useState("")
-  const [correction, setCorrection] = useState("")
-  const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false)
-  const [isSendingEmail, setIsSendingEmail] = useState(false)
 
   useEffect(() => {
     loadDocuments()
