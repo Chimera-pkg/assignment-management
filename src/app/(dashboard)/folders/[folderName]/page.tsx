@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -28,6 +28,7 @@ import type { DocumentData } from "@/actions/documents"
 
 export default function Dashboard() {
   const params = useParams()
+  const router = useRouter()
   const folderName = params.folderName as string
   
   // Convert URL-friendly name back to display name
@@ -186,8 +187,7 @@ export default function Dashboard() {
               <h2 className="font-semibold text-sm">{submittedFiles.length} Tugas Terkumpul</h2>
               <p className="text-xs text-muted-foreground">3 mengumpulkan tepat waktu</p>
               <p className="text-xs text-muted-foreground">1 mengumpulkan terlambat</p>
-            </div>
-            <Button variant="outline" onClick={() => window.location.href = "/submission"}>
+            </div>            <Button variant="outline" onClick={() => router.push(`/${encodeURIComponent(folderName)}/submit`)}>
               Pengumpulan tugas
             </Button>
             </div>
